@@ -13,6 +13,9 @@ import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
 
+bot :: a
+bot = bot
+
 -- This is always (y, x)
 type Coord = (Int, Int)
 
@@ -29,6 +32,9 @@ data GameState = GameState
   { _terminalSize :: Coord
   , _board :: Board
   , _blank :: Coord
+  , _tileSize :: Coord
+  , _tileImages :: Array Int Image
+  , _basePicture :: Picture
   }
 
 $(makeLenses ''GameState)
@@ -63,10 +69,54 @@ scramblePuzzle = do
   bs <- view boardSize
   -- This is good for up to a 16x16 puzzle
   let two = 2 :: Int
-  sequence_ $ replicate (4 * (fst bs)^two * (snd bs)^two) randomMove
+  sequence_ $ replicate (4 * (fst bs)^two * (snd bs)^two)
+    (randomMove >> displayPuzzle)
+
+style :: Attr
+style = defAttr `withForeColor` brightWhite `withBackColor` black
+
+tileImage :: Int -> Game Image
+tileImage t = do
+  (rows, cols) <- use tileSize
+  let horizontal = replicate (cols - 2) '\x2501'
+      spaces = replicate (cols - 2) ' '
+      top    = "\x250f" ++ horizontal ++ "\x2513"
+      bottom = "\x2517" ++ horizontal ++ "\x251b"
+      middle = "\x2503" ++ spaces     ++ "\x2503"
+      tStr = show t
+      len = length tStr
+      number = "\x2503" ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tStr ++
+        replicate ((cols - 2 - len) `div` 2) ' ' ++ "\x2503"
+      imageRows = [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
+        replicate ((rows - 3) `div` 2) middle ++ [bottom]
+  return $ foldr1 (<->) $ map (string style) imageRows
+
+makeTileImages :: Game ()
+makeTileImages = do
+  (y, x) <- view boardSize
+  images <- sequence $ map tileImage [0..x*y - 1]
+  tileImages .= listArray (0, x*y - 1) images
+
+setBasePicture :: Game ()
+setBasePicture = do
+  (_, numRows) <- use terminalSize
+  let help = "Wait one moment and the program will exit"
+  basePicture .= (picForImage $ translate 0 (numRows - 1) $ string style help)
+    { picBackground = Background ' ' style }
+
+displayPuzzle :: Game ()
+displayPuzzle = do
+  bp <- use basePicture
+  ts <- use tileImages
+  let wholePicture = addToTop bp (ts ! 11)
+  v <- view vty
+  liftIO $ update v wholePicture
 
 playGame :: Game String
 playGame = do
+  setBasePicture
+  makeTileImages
+  displayPuzzle
   scramblePuzzle
   liftIO $ threadDelay 1000000
   b <- use board
@@ -87,6 +137,9 @@ startGame bs v = do
         { _terminalSize = db
         , _board = solvedBoard bs
         , _blank = bs
+        , _tileSize = (5, 7) -- TODO fix this
+        , _tileImages = bot
+        , _basePicture = bot
         }
   runReaderT (evalStateT (evalRandT (runMaybeT playGame) gen) startState) env
 
