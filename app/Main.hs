@@ -7,15 +7,12 @@ import Control.Monad
 import Control.Monad.Trans.Maybe
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Array
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
 
-data Coord = Coord
-  { _y :: Int
-  , _x :: Int
-  }
-
-$(makeLenses ''Coord)
+-- This is always (y, x)
+type Coord = (Int, Int)
 
 data Environment = Environment
   { _vty :: Vty
@@ -24,13 +21,19 @@ data Environment = Environment
 
 $(makeLenses ''Environment)
 
+type Board = Array Coord Int
+
 data GameState = GameState
   { _terminalSize :: Coord
+  , _board :: Board
   }
 
 $(makeLenses ''GameState)
 
 type Game = MaybeT (StateT GameState (ReaderT Environment IO))
+
+solvedBoard :: Coord -> Board
+solvedBoard bs = listArray ((1, 1), bs) $ [1..(fst bs * snd bs - 1)] ++ [0]
 
 playGame :: Game String
 playGame = do
@@ -40,12 +43,14 @@ playGame = do
 startGame :: Coord -> Vty -> IO (Maybe String)
 startGame size v = do
   let env = Environment { _vty = v, _boardSize = size }
-  let output = outputIface v
-  (c, r) <- displayBounds output
-  let startState = GameState { _terminalSize = Coord c r }
+  sz <- displayBounds $ outputIface v
+  let startState = GameState
+        { _terminalSize = sz
+        , _board = solvedBoard sz
+        }
   runReaderT (evalStateT (runMaybeT playGame) startState) env
 
 main :: IO ()
 main = do
-  msg <- bracket (mkVty defaultConfig) shutdown (startGame $ Coord 4 4)
+  msg <- bracket (mkVty defaultConfig) shutdown (startGame (3, 4))
   mapM_ putStrLn msg
