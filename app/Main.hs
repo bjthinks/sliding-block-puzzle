@@ -125,6 +125,13 @@ displayPuzzle = do
   v <- view vty
   liftIO $ update v wholePicture
 
+handleResize :: Coord -> Game ()
+handleResize newSize = do
+  terminalSize .= newSize
+  setBasePicture
+  setTileSize
+  makeTileImages
+
 eventLoop :: Game String
 eventLoop = do
   displayPuzzle
@@ -134,7 +141,8 @@ eventLoop = do
     EvKey KEsc _ -> mzero
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
-    _ -> return ()
+    EvResize c r -> handleResize (r, c)
+    _ -> (liftIO (print e)) >> return ()
   eventLoop
 
 playGame :: Game String
