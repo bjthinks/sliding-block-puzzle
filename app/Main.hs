@@ -107,8 +107,13 @@ setBasePicture = do
 displayPuzzle :: Game ()
 displayPuzzle = do
   bp <- use basePicture
+  b <- use board
   ts <- use tileImages
-  let wholePicture = addToTop bp (ts ! 11)
+  (tileHeight, tileWidth) <- use tileSize
+  let translatedTiles =
+        [translate (tileWidth*(x-1)) (tileHeight*(y-1)) (ts ! t)
+        | ((y, x), t) <- assocs b]
+  let wholePicture = foldr (flip addToTop) bp translatedTiles
   v <- view vty
   liftIO $ update v wholePicture
 
@@ -118,7 +123,7 @@ playGame = do
   makeTileImages
   displayPuzzle
   scramblePuzzle
-  liftIO $ threadDelay 1000000
+  liftIO $ threadDelay 5000000
   b <- use board
   return $ show b
 
