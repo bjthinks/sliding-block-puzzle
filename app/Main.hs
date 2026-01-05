@@ -97,7 +97,7 @@ tileImage t = do
         replicate ((cols - 2 - len) `div` 2) ' ' ++ "\x2503"
       imageRows = [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
         replicate ((rows - 3) `div` 2) middle ++ [bottom]
-  return $ foldr1 (<->) $ map (string style) imageRows
+  return $ vertCat $ map (string style) imageRows
 
 makeTileImages :: Game ()
 makeTileImages = do
@@ -142,7 +142,7 @@ eventLoop = do
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
     EvResize c r -> handleResize (r, c)
-    _ -> (liftIO (print e)) >> return ()
+    _ -> return ()
   eventLoop
 
 playGame :: Game String
