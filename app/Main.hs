@@ -38,15 +38,16 @@ solvedBoard bs = listArray ((1, 1), bs) $ [1..(fst bs * snd bs - 1)] ++ [0]
 playGame :: Game String
 playGame = do
   liftIO $ threadDelay 3000000
-  mzero
+  b <- use board
+  return $ show b
 
 startGame :: Coord -> Vty -> IO (Maybe String)
-startGame size v = do
-  let env = Environment { _vty = v, _boardSize = size }
-  sz <- displayBounds $ outputIface v
+startGame bs v = do
+  let env = Environment { _vty = v, _boardSize = bs }
+  db <- displayBounds $ outputIface v
   let startState = GameState
-        { _terminalSize = sz
-        , _board = solvedBoard sz
+        { _terminalSize = db
+        , _board = solvedBoard bs
         }
   runReaderT (evalStateT (runMaybeT playGame) startState) env
 
