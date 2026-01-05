@@ -71,6 +71,15 @@ scramblePuzzle = do
   let two = 2 :: Int
   sequence_ $ replicate (4 * (fst bs)^two * (snd bs)^two) randomMove
 
+setTileSize :: Game ()
+setTileSize = do
+  (by, bx) <- view boardSize
+  (dy, dx) <- use terminalSize
+  let ty = max 3 $ (dy - 1) `div` by -- Leave one row at bottom for help message
+      minWidth = 2 + length (show $ by * bx - 1)
+      tx = max minWidth $ dx `div` bx
+  tileSize .= (ty, tx)
+
 style :: Attr
 style = defAttr `withForeColor` brightWhite `withBackColor` black
 
@@ -99,7 +108,7 @@ makeTileImages = do
 
 setBasePicture :: Game ()
 setBasePicture = do
-  (_, numRows) <- use terminalSize
+  (numRows, _) <- use terminalSize
   let help = "Wait one moment and the program will exit"
   basePicture .= (picForImage $ translate 0 (numRows - 1) $ string style help)
     { picBackground = Background ' ' style }
@@ -120,6 +129,7 @@ displayPuzzle = do
 playGame :: Game String
 playGame = do
   setBasePicture
+  setTileSize
   makeTileImages
   displayPuzzle
   scramblePuzzle
@@ -138,12 +148,12 @@ startGame bs v = do
   let env = Environment { _vty = v, _boardSize = bs }
   t <- getNanosSinceEpoch
   let gen = mkStdGen $ fromInteger t
-  db <- displayBounds $ outputIface v
+  (cols, rows) <- displayBounds $ outputIface v
   let startState = GameState
-        { _terminalSize = db
+        { _terminalSize = (rows, cols)
         , _board = solvedBoard bs
         , _blank = bs
-        , _tileSize = (5, 16) -- TODO fix this
+        , _tileSize = bot
         , _tileImages = bot
         , _basePicture = bot
         }
@@ -151,5 +161,5 @@ startGame bs v = do
 
 main :: IO ()
 main = do
-  msg <- bracket (mkVty defaultConfig) shutdown (startGame (10, 5))
+  msg <- bracket (mkVty defaultConfig) shutdown (startGame (5, 4))
   mapM_ putStrLn msg
