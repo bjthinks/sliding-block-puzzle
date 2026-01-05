@@ -69,13 +69,13 @@ scramblePuzzle = do
   bs <- view boardSize
   -- This is good for up to a 16x16 puzzle
   let two = 2 :: Int
-  sequence_ $ replicate (4 * (fst bs)^two * (snd bs)^two)
-    (randomMove >> displayPuzzle)
+  sequence_ $ replicate (4 * (fst bs)^two * (snd bs)^two) randomMove
 
 style :: Attr
 style = defAttr `withForeColor` brightWhite `withBackColor` black
 
 tileImage :: Int -> Game Image
+tileImage 0 = return emptyImage
 tileImage t = do
   (rows, cols) <- use tileSize
   let horizontal = replicate (cols - 2) '\x2501'
@@ -123,6 +123,7 @@ playGame = do
   makeTileImages
   displayPuzzle
   scramblePuzzle
+  displayPuzzle
   liftIO $ threadDelay 5000000
   b <- use board
   return $ show b
@@ -142,7 +143,7 @@ startGame bs v = do
         { _terminalSize = db
         , _board = solvedBoard bs
         , _blank = bs
-        , _tileSize = (5, 7) -- TODO fix this
+        , _tileSize = (5, 16) -- TODO fix this
         , _tileImages = bot
         , _basePicture = bot
         }
@@ -150,5 +151,5 @@ startGame bs v = do
 
 main :: IO ()
 main = do
-  msg <- bracket (mkVty defaultConfig) shutdown (startGame (3, 4))
+  msg <- bracket (mkVty defaultConfig) shutdown (startGame (10, 5))
   mapM_ putStrLn msg
