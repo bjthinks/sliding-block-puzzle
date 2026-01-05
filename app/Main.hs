@@ -8,6 +8,8 @@ import Control.Monad.Random.Strict
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Data.Array
+import qualified Data.ByteString as BS
+import Data.FileEmbed
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
@@ -133,6 +135,9 @@ handleResize newSize = do
   setBasePicture
   setTileSize
   makeTileImages
+
+slideWavData :: BS.ByteString
+slideWavData = $(embedFile "slide.wav")
 
 eventLoop :: Game String
 eventLoop = do
