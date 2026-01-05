@@ -82,22 +82,24 @@ setTileSize = do
 style :: Attr
 style = defAttr `withForeColor` brightWhite `withBackColor` black
 
+inverseStyle :: Attr
+inverseStyle = defAttr `withForeColor` black `withBackColor` brightWhite
+
 tileImage :: Int -> Game Image
 tileImage 0 = return emptyImage
 tileImage t = do
   (rows, cols) <- use tileSize
-  let horizontal = replicate (cols - 2) '\x2501'
-      spaces = replicate (cols - 2) ' '
-      top    = "\x250f" ++ horizontal ++ "\x2513"
-      bottom = "\x2517" ++ horizontal ++ "\x251b"
-      middle = "\x2503" ++ spaces     ++ "\x2503"
+  let spaces = replicate (cols - 2) ' '
+      top    = "\x259b" ++ replicate (cols - 2) '\x2580' ++ "\x259c"
+      bottom = "\x2599" ++ replicate (cols - 2) '\x2584' ++ "\x259f"
+      middle = "\x258c" ++ spaces     ++ "\x2590"
       tStr = show t
       len = length tStr
-      number = "\x2503" ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tStr ++
-        replicate ((cols - 2 - len) `div` 2) ' ' ++ "\x2503"
+      number = "\x258c" ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tStr ++
+        replicate ((cols - 2 - len) `div` 2) ' ' ++ "\x2590"
       imageRows = [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
         replicate ((rows - 3) `div` 2) middle ++ [bottom]
-  return $ vertCat $ map (string style) imageRows
+  return $ vertCat $ map (string inverseStyle) imageRows
 
 makeTileImages :: Game ()
 makeTileImages = do
