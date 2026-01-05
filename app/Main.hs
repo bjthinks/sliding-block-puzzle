@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Control.Lens
 import Control.Monad
@@ -109,7 +108,7 @@ makeTileImages = do
 setBasePicture :: Game ()
 setBasePicture = do
   (numRows, _) <- use terminalSize
-  let help = "Wait one moment and the program will exit"
+  let help = "Press ESC or q to exit."
   basePicture .= (picForImage $ translate 0 (numRows - 1) $ string style help)
     { picBackground = Background ' ' style }
 
@@ -126,6 +125,18 @@ displayPuzzle = do
   v <- view vty
   liftIO $ update v wholePicture
 
+eventLoop :: Game String
+eventLoop = do
+  displayPuzzle
+  v <- view vty
+  e <- liftIO $ nextEvent v
+  case e of
+    EvKey KEsc _ -> mzero
+    EvKey (KChar 'q') _ -> mzero
+    EvKey (KChar 'Q') _ -> mzero
+    _ -> return ()
+  eventLoop
+
 playGame :: Game String
 playGame = do
   setBasePicture
@@ -133,10 +144,7 @@ playGame = do
   makeTileImages
   displayPuzzle
   scramblePuzzle
-  displayPuzzle
-  liftIO $ threadDelay 5000000
-  b <- use board
-  return $ show b
+  eventLoop
 
 getNanosSinceEpoch :: IO Integer
 getNanosSinceEpoch = do
