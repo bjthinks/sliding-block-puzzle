@@ -26,6 +26,7 @@ bot = bot
 
 -- This is always (y, x)
 type Coord = (Int, Int)
+type Board = Array Coord Int
 
 data Environment = Environment
   { _vty :: Vty
@@ -33,11 +34,10 @@ data Environment = Environment
   , _slideSound :: SDLM.Chunk
 #endif
   , _boardSize :: Coord
+  , _goal :: Board
   }
 
 $(makeLenses ''Environment)
-
-type Board = Array Coord Int
 
 data GameState = GameState
   { _terminalSize :: Coord
@@ -255,7 +255,13 @@ eventLoop = do
     EvKey KRight _ -> moveRight
     EvResize c r -> handleResize (r, c)
     _ -> return ()
-  eventLoop
+  b <- use board
+  g <- view goal
+  if b == g
+    then return $
+    "Congratulations! For a greater challenge, try chaning the board size.\n" ++
+    "To do that: cabal run sliding-block-puzzle -- height width\n"
+    else eventLoop
 
 playGame :: Game String
 playGame = do
@@ -288,7 +294,9 @@ startGame bs v = do
 #ifdef SOUND
         , _slideSound = ss
 #endif
-        , _boardSize = bs }
+        , _boardSize = bs
+        , _goal = solvedBoard bs
+        }
   t <- getNanosSinceEpoch
   let gen = mkStdGen $ fromInteger t
   (cols, rows) <- displayBounds $ outputIface v
@@ -328,4 +336,4 @@ main = do
 #endif
     )
     (startGame (4, 4))
-  mapM_ putStrLn msg
+  mapM_ putStr msg
