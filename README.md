@@ -1,5 +1,5 @@
 # Sliding Block Puzzle
-## (aka 15-puzzle)
+## (AKA 15-Puzzle)
 
 You will need to install the following package for this software to build:
 
