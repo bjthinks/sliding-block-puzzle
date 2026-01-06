@@ -52,7 +52,7 @@ build-type:         Simple
 
 flag sound
   description: Enable sound (works on Linux, not on Windows)
-  default:     False
+  default:     True
   manual:      True
 
 common warnings
