@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Main where
 
 import Control.Exception (bracket)
@@ -13,8 +15,10 @@ import Data.FileEmbed
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
+#ifdef SOUND
 import qualified SDL.Init as SDLI
 import qualified SDL.Mixer as SDLM
+#endif
 
 bot :: a
 bot = bot
@@ -24,7 +28,9 @@ type Coord = (Int, Int)
 
 data Environment = Environment
   { _vty :: Vty
+#ifdef SOUND
   , _slideSound :: SDLM.Chunk
+#endif
   , _boardSize :: Coord
   }
 
@@ -142,6 +148,7 @@ handleResize newSize = do
 slideWavData :: BS.ByteString
 slideWavData = $(embedFile "slide.wav")
 
+#ifdef SOUND
 playSlide :: Game ()
 playSlide = do
   playing <- SDLM.playing (fromInteger 1)
@@ -149,6 +156,7 @@ playSlide = do
     ss <- view slideSound
     _ <- SDLM.playOn (fromInteger 1) SDLM.Once ss
     return ()
+#endif
 
 eventLoop :: Game String
 eventLoop = do
@@ -159,7 +167,9 @@ eventLoop = do
     EvKey KEsc _ -> mzero
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
+#ifdef SOUND
     EvKey (KChar 'p') _ -> playSlide
+#endif
     EvResize c r -> handleResize (r, c)
     _ -> return ()
   eventLoop
@@ -178,11 +188,23 @@ getNanosSinceEpoch = do
   (MkSystemTime s ns) <- getSystemTime
   return $ toInteger s * 10^(9 :: Int) + toInteger ns
 
-startGame :: Coord -> (SDLM.Chunk, Vty) -> IO (Maybe String)
-startGame bs (ss, v) = do
+#ifdef SOUND
+type StartParams = (Vty, SDLM.Chunk)
+#else
+type StartParams = Vty
+#endif
+
+startGame :: Coord -> StartParams -> IO (Maybe String)
+#ifdef SOUND
+startGame bs (v, ss) = do
+#else
+startGame bs v = do
+#endif
   let env = Environment
         { _vty = v
+#ifdef SOUND
         , _slideSound = ss
+#endif
         , _boardSize = bs }
   t <- getNanosSinceEpoch
   let gen = mkStdGen $ fromInteger t
@@ -200,15 +222,26 @@ startGame bs (ss, v) = do
 main :: IO ()
 main = do
   msg <- bracket
-    (do SDLI.initialize [SDLI.InitAudio]
+    (do
+#ifdef SOUND
+        SDLI.initialize [SDLI.InitAudio]
         SDLM.openAudio (SDLM.Audio 48000 SDLM.FormatS16_Sys SDLM.Stereo) 1024
         ss <- SDLM.decode slideWavData
+#endif
         v <- mkVty defaultConfig
-        return (ss, v))
-    (\(ss, v) ->
+#ifdef SOUND
+        return (v, ss))
+    (\(v, ss) ->
+#else
+        return v)
+    (\v ->
+#endif
        do shutdown v
+#ifdef SOUND
           SDLM.halt SDLM.AllChannels
           SDLM.free ss
-          SDLM.closeAudio)
+          SDLM.closeAudio
+#endif
+    )
     (startGame (5, 4))
   mapM_ putStrLn msg
