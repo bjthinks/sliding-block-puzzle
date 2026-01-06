@@ -148,14 +148,16 @@ handleResize newSize = do
 slideWavData :: BS.ByteString
 slideWavData = $(embedFile "slide.wav")
 
-#ifdef SOUND
 playSlide :: Game ()
+#ifdef SOUND
 playSlide = do
   playing <- SDLM.playing (fromInteger 1)
   unless playing $ do
     ss <- view slideSound
     _ <- SDLM.playOn (fromInteger 1) SDLM.Once ss
     return ()
+#else
+playSlide = return ()
 #endif
 
 eventLoop :: Game String
@@ -167,9 +169,7 @@ eventLoop = do
     EvKey KEsc _ -> mzero
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
-#ifdef SOUND
     EvKey (KChar 'p') _ -> playSlide
-#endif
     EvResize c r -> handleResize (r, c)
     _ -> return ()
   eventLoop
