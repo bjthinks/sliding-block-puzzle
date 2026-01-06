@@ -264,7 +264,7 @@ eventLoop = do
     then return $
          "Congratulations! For a greater challenge, " ++
          "try changing the board size.\n" ++
-         "To do that: cabal run sliding-block-puzzle -- height width\n"
+         "To do that: cabal run sliding-block-puzzle -- width height\n"
     else eventLoop
 
 playGame :: Game String
@@ -322,6 +322,8 @@ main = do
     [x, y] -> return $ (read y, read x)
     [] -> return (4, 4)
     _ -> hPutStrLn stderr "Please specify a width and height." >> exitFailure
+  when (fst bs > 16 || snd bs > 16) $
+    hPutStrLn stderr "Error: puzzle too large. Maximum is 16 by 16." >> exitFailure
   msg <- bracket
     (do
 #ifdef SOUND
