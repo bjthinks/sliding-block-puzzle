@@ -13,6 +13,8 @@ import Data.FileEmbed
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
+import qualified SDL.Init as SDLI
+import qualified SDL.Mixer as SDLM
 
 bot :: a
 bot = bot
@@ -22,6 +24,7 @@ type Coord = (Int, Int)
 
 data Environment = Environment
   { _vty :: Vty
+  , _slideSound :: SDLM.Chunk
   , _boardSize :: Coord
   }
 
@@ -139,6 +142,14 @@ handleResize newSize = do
 slideWavData :: BS.ByteString
 slideWavData = $(embedFile "slide.wav")
 
+playSlide :: Game ()
+playSlide = do
+  playing <- SDLM.playing (fromInteger 1)
+  unless playing $ do
+    ss <- view slideSound
+    _ <- SDLM.playOn (fromInteger 1) SDLM.Once ss
+    return ()
+
 eventLoop :: Game String
 eventLoop = do
   displayPuzzle
@@ -148,6 +159,7 @@ eventLoop = do
     EvKey KEsc _ -> mzero
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
+    EvKey (KChar 'p') _ -> playSlide
     EvResize c r -> handleResize (r, c)
     _ -> return ()
   eventLoop
@@ -166,9 +178,12 @@ getNanosSinceEpoch = do
   (MkSystemTime s ns) <- getSystemTime
   return $ toInteger s * 10^(9 :: Int) + toInteger ns
 
-startGame :: Coord -> Vty -> IO (Maybe String)
-startGame bs v = do
-  let env = Environment { _vty = v, _boardSize = bs }
+startGame :: Coord -> (SDLM.Chunk, Vty) -> IO (Maybe String)
+startGame bs (ss, v) = do
+  let env = Environment
+        { _vty = v
+        , _slideSound = ss
+        , _boardSize = bs }
   t <- getNanosSinceEpoch
   let gen = mkStdGen $ fromInteger t
   (cols, rows) <- displayBounds $ outputIface v
@@ -184,5 +199,16 @@ startGame bs v = do
 
 main :: IO ()
 main = do
-  msg <- bracket (mkVty defaultConfig) shutdown (startGame (5, 4))
+  msg <- bracket
+    (do SDLI.initialize [SDLI.InitAudio]
+        SDLM.openAudio (SDLM.Audio 48000 SDLM.FormatS16_Sys SDLM.Stereo) 1024
+        ss <- SDLM.decode slideWavData
+        v <- mkVty defaultConfig
+        return (ss, v))
+    (\(ss, v) ->
+       do shutdown v
+          SDLM.halt SDLM.AllChannels
+          SDLM.free ss
+          SDLM.closeAudio)
+    (startGame (5, 4))
   mapM_ putStrLn msg
