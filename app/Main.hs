@@ -121,7 +121,7 @@ makeTileImages = do
 setBasePicture :: Game ()
 setBasePicture = do
   (numRows, _) <- use terminalSize
-  let help = "Press ESC or q to exit."
+  let help = "Arrow keys to move, ESC or q to exit."
   basePicture .= (picForImage $ translate 0 (numRows - 1) $ string style help)
     { picBackground = Background ' ' style }
 
@@ -144,6 +144,55 @@ handleResize newSize = do
   setBasePicture
   setTileSize
   makeTileImages
+
+swap :: Coord -> Coord -> Game ()
+swap p1 p2 = do
+  b <- use board
+  let t1 = b ! p1
+      t2 = b ! p2
+  board .= b // [(p1, t2), (p2, t1)]
+
+moveUp :: Game ()
+moveUp = do
+  (y, x) <- use blank
+  (ymax, _) <- view boardSize
+  if y < ymax then
+    do let y' = y+1
+       blank .= (y', x)
+       swap (y, x) (y', x)
+       playSlide
+    else return ()
+
+moveDown :: Game ()
+moveDown = do
+  (y, x) <- use blank
+  if y > 1 then
+    do let y' = y-1
+       blank .= (y', x)
+       swap (y, x) (y', x)
+       playSlide
+    else return ()
+
+moveLeft :: Game ()
+moveLeft = do
+  (y, x) <- use blank
+  (_, xmax) <- view boardSize
+  if x < xmax then
+    do let x' = x+1
+       blank .= (y, x')
+       swap (y, x) (y, x')
+       playSlide
+    else return ()
+
+moveRight :: Game ()
+moveRight = do
+  (y, x) <- use blank
+  if x > 1 then
+    do let x' = x-1
+       blank .= (y, x')
+       swap (y, x) (y, x')
+       playSlide
+    else return ()
 
 slideWavData :: BS.ByteString
 slideWavData = $(embedFile "slide.wav")
@@ -169,7 +218,10 @@ eventLoop = do
     EvKey KEsc _ -> mzero
     EvKey (KChar 'q') _ -> mzero
     EvKey (KChar 'Q') _ -> mzero
-    EvKey (KChar 'p') _ -> playSlide
+    EvKey KUp    _ -> moveUp
+    EvKey KDown  _ -> moveDown
+    EvKey KLeft  _ -> moveLeft
+    EvKey KRight _ -> moveRight
     EvResize c r -> handleResize (r, c)
     _ -> return ()
   eventLoop
