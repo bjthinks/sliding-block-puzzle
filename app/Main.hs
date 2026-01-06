@@ -2,6 +2,7 @@
 
 module Main where
 
+import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Control.Lens
 import Control.Monad
@@ -45,6 +46,7 @@ data GameState = GameState
   , _tileSize :: Coord
   , _tileImages :: Array Int Image
   , _basePicture :: Picture
+  , _movingTile :: Maybe (Coord, Coord)
   }
 
 $(makeLenses ''GameState)
@@ -131,8 +133,11 @@ displayPuzzle = do
   b <- use board
   ts <- use tileImages
   (tileHeight, tileWidth) <- use tileSize
+  maybeMoving <- use movingTile
+  let (movingCoord, (dy, dx)) = maybe ((0,0), (0,0)) id maybeMoving
   let translatedTiles =
-        [translate (tileWidth*(x-1)) (tileHeight*(y-1)) (ts ! t)
+        [ (if (y, x) == movingCoord then (translate dx dy $) else id) $
+          translate (tileWidth*(x-1)) (tileHeight*(y-1)) (ts ! t)
         | ((y, x), t) <- assocs b]
   let wholePicture = foldr (flip addToTop) bp translatedTiles
   v <- view vty
@@ -145,8 +150,16 @@ handleResize newSize = do
   setTileSize
   makeTileImages
 
-swap :: Coord -> Coord -> Game ()
-swap p1 p2 = do
+animate :: Int -> Coord -> [Coord] -> Game ()
+animate _ _ [] = movingTile .= Nothing
+animate usec (y, x) ((dy, dx):ds) = do
+  movingTile .= Just ((y, x), (dy, dx))
+  displayPuzzle
+  liftIO $ threadDelay usec
+  animate usec (y, x) ds
+
+moveTo :: Coord -> Coord -> Game ()
+moveTo p1 p2 = do
   b <- use board
   let t1 = b ! p1
       t2 = b ! p2
@@ -158,9 +171,13 @@ moveUp = do
   (ymax, _) <- view boardSize
   if y < ymax then
     do let y' = y+1
-       blank .= (y', x)
-       swap (y, x) (y', x)
        playSlide
+       (tileHeight, _) <- use tileSize
+       let offsets = [(o, 0) | o <- [(-1),(-2)..(-tileHeight+1)]]
+           delay = 250000 `div` (tileHeight-1)
+       animate delay (y', x) offsets
+       moveTo (y', x) (y, x)
+       blank .= (y', x)
     else return ()
 
 moveDown :: Game ()
@@ -168,9 +185,13 @@ moveDown = do
   (y, x) <- use blank
   if y > 1 then
     do let y' = y-1
-       blank .= (y', x)
-       swap (y, x) (y', x)
        playSlide
+       (tileHeight, _) <- use tileSize
+       let offsets = [(o, 0) | o <- [1,2..tileHeight-1]]
+           delay = 250000 `div` (tileHeight-1)
+       animate delay (y', x) offsets
+       moveTo (y', x) (y, x)
+       blank .= (y', x)
     else return ()
 
 moveLeft :: Game ()
@@ -179,9 +200,13 @@ moveLeft = do
   (_, xmax) <- view boardSize
   if x < xmax then
     do let x' = x+1
-       blank .= (y, x')
-       swap (y, x) (y, x')
        playSlide
+       (_, tileWidth) <- use tileSize
+       let offsets = [(0, o) | o <- [(-1),(-2)..(-tileWidth+1)]]
+           delay = 250000 `div` (tileWidth-1)
+       animate delay (y, x') offsets
+       moveTo (y, x') (y, x)
+       blank .= (y, x')
     else return ()
 
 moveRight :: Game ()
@@ -189,9 +214,13 @@ moveRight = do
   (y, x) <- use blank
   if x > 1 then
     do let x' = x-1
-       blank .= (y, x')
-       swap (y, x) (y, x')
        playSlide
+       (_, tileWidth) <- use tileSize
+       let offsets = [(0, o) | o <- [1,2..tileWidth-1]]
+           delay = 250000 `div` (tileWidth-1)
+       animate delay (y, x') offsets
+       moveTo (y, x') (y, x)
+       blank .= (y, x')
     else return ()
 
 slideWavData :: BS.ByteString
@@ -268,6 +297,7 @@ startGame bs v = do
         , _tileSize = bot
         , _tileImages = bot
         , _basePicture = bot
+        , _movingTile = Nothing
         }
   runReaderT (evalStateT (evalRandT (runMaybeT playGame) gen) startState) env
 
@@ -295,5 +325,5 @@ main = do
           SDLM.closeAudio
 #endif
     )
-    (startGame (5, 4))
+    (startGame (3, 2))
   mapM_ putStrLn msg
