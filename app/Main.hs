@@ -11,12 +11,12 @@ import Control.Monad.Random.Strict
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Data.Array
-import qualified Data.ByteString as BS
-import Data.FileEmbed
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
 #ifdef SOUND
+import qualified Data.ByteString as BS
+import Data.FileEmbed
 import qualified SDL.Init as SDLI
 import qualified SDL.Mixer as SDLM
 #endif
@@ -223,8 +223,10 @@ moveRight = do
        blank .= (y, x')
     else return ()
 
+#ifdef SOUND
 slideWavData :: BS.ByteString
-slideWavData = $(embedFile "slide.wav")
+slideWavData = $(embedFile "short-slide.wav")
+#endif
 
 playSlide :: Game ()
 #ifdef SOUND
@@ -325,5 +327,5 @@ main = do
           SDLM.closeAudio
 #endif
     )
-    (startGame (3, 2))
+    (startGame (4, 4))
   mapM_ putStrLn msg
