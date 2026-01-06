@@ -14,6 +14,9 @@ import Data.Array
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
+import System.Environment (getArgs)
+import System.Exit (exitFailure)
+import System.IO (hPutStrLn, stderr)
 #ifdef SOUND
 import qualified Data.ByteString as BS
 import Data.FileEmbed
@@ -259,8 +262,9 @@ eventLoop = do
   g <- view goal
   if b == g
     then return $
-    "Congratulations! For a greater challenge, try chaning the board size.\n" ++
-    "To do that: cabal run sliding-block-puzzle -- height width\n"
+         "Congratulations! For a greater challenge, " ++
+         "try changing the board size.\n" ++
+         "To do that: cabal run sliding-block-puzzle -- height width\n"
     else eventLoop
 
 playGame :: Game String
@@ -313,6 +317,11 @@ startGame bs v = do
 
 main :: IO ()
 main = do
+  args <- getArgs
+  bs <- case args of
+    [x, y] -> return $ (read y, read x)
+    [] -> return (4, 4)
+    _ -> hPutStrLn stderr "Please specify a width and height." >> exitFailure
   msg <- bracket
     (do
 #ifdef SOUND
@@ -335,5 +344,5 @@ main = do
           SDLM.closeAudio
 #endif
     )
-    (startGame (4, 4))
+    (startGame bs)
   mapM_ putStr msg
