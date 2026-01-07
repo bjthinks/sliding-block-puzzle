@@ -4,7 +4,6 @@ module Main where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
-import Control.Lens
 import Control.Monad
 import Control.Monad.Trans.Maybe
 import Control.Monad.Random.Strict
@@ -14,6 +13,7 @@ import Data.Array
 import Data.Time.Clock.System (getSystemTime, SystemTime(..))
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform
+import Lens.Micro.Platform
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
