@@ -176,8 +176,8 @@ moveUp = do
     do let y' = y+1
        playSlide
        (tileHeight, _) <- use tileSize
-       let offsets = [(o, 0) | o <- [(-1),(-2)..(-tileHeight+1)]]
-           delay = 250000 `div` (tileHeight-1)
+       let offsets = [(o, 0) | o <- [(-1),(-2)..(-tileHeight)]]
+           delay = 250000 `div` (tileHeight)
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -190,8 +190,8 @@ moveDown = do
     do let y' = y-1
        playSlide
        (tileHeight, _) <- use tileSize
-       let offsets = [(o, 0) | o <- [1,2..tileHeight-1]]
-           delay = 250000 `div` (tileHeight-1)
+       let offsets = [(o, 0) | o <- [1,2..tileHeight]]
+           delay = 250000 `div` (tileHeight)
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -205,8 +205,8 @@ moveLeft = do
     do let x' = x+1
        playSlide
        (_, tileWidth) <- use tileSize
-       let offsets = [(0, o) | o <- [(-1),(-2)..(-tileWidth+1)]]
-           delay = 250000 `div` (tileWidth-1)
+       let offsets = [(0, o) | o <- [(-1),(-2)..(-tileWidth)]]
+           delay = 250000 `div` (tileWidth)
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
@@ -219,8 +219,8 @@ moveRight = do
     do let x' = x-1
        playSlide
        (_, tileWidth) <- use tileSize
-       let offsets = [(0, o) | o <- [1,2..tileWidth-1]]
-           delay = 250000 `div` (tileWidth-1)
+       let offsets = [(0, o) | o <- [1,2..tileWidth]]
+           delay = 250000 `div` (tileWidth)
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
