@@ -90,9 +90,9 @@ setTileSize :: Game ()
 setTileSize = do
   (by, bx) <- view boardSize
   (dy, dx) <- use terminalSize
-  let ty = max 3 $ (dy - 1) `div` by -- Leave one row at bottom for help message
+  let ty = max 3 $ (dy - by) `div` by -- Leave one row at bottom for help message
       minWidth = 2 + length (show $ by * bx - 1)
-      tx = max minWidth $ dx `div` bx
+      tx = max minWidth $ (dx - bx + 1) `div` bx
   tileSize .= (ty, tx)
 
 style :: Attr
@@ -140,7 +140,7 @@ displayPuzzle = do
   let (movingCoord, (dy, dx)) = maybe ((0,0), (0,0)) id maybeMoving
   let translatedTiles =
         [ (if (y, x) == movingCoord then (translate dx dy $) else id) $
-          translate (tileWidth*(x-1)) (tileHeight*(y-1)) (ts ! t)
+          translate ((tileWidth+1)*(x-1)) ((tileHeight+1)*(y-1)) (ts ! t)
         | ((y, x), t) <- assocs b]
   let wholePicture = foldr (flip addToTop) bp translatedTiles
   v <- view vty
