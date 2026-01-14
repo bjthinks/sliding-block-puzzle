@@ -106,13 +106,13 @@ tileImage 0 = return emptyImage
 tileImage t = do
   (rows, cols) <- use tileSize
   let spaces = replicate (cols - 2) ' '
-      top    = "\x259b" ++ replicate (cols - 2) '\x2580' ++ "\x259c"
-      bottom = "\x2599" ++ replicate (cols - 2) '\x2584' ++ "\x259f"
-      middle = "\x258c" ++ spaces     ++ "\x2590"
+      top    = " " ++ replicate (cols - 2) ' ' ++ " "
+      bottom = " " ++ replicate (cols - 2) ' ' ++ " "
+      middle = " " ++ spaces ++ " "
       tStr = show t
       len = length tStr
-      number = "\x258c" ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tStr ++
-        replicate ((cols - 2 - len) `div` 2) ' ' ++ "\x2590"
+      number = " " ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tStr ++
+        replicate ((cols - 2 - len) `div` 2) ' ' ++ " "
       imageRows = [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
         replicate ((rows - 3) `div` 2) middle ++ [bottom]
   return $ vertCat $ map (string inverseStyle) imageRows
