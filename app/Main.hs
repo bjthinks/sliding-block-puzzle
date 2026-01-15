@@ -137,9 +137,11 @@ displayPuzzle = do
   ts <- use tileImages
   (tileHeight, tileWidth) <- use tileSize
   maybeMoving <- use movingTile
+  -- (dy, dx) are in eighths of a pixel
   let (movingCoord, (dy, dx)) = maybe ((0,0), (0,0)) id maybeMoving
+      (py, px) = (dy `div` 8, dx `div` 8)
   let translatedTiles =
-        [ (if (y, x) == movingCoord then (translate dx dy $) else id) $
+        [ (if (y, x) == movingCoord then (translate px py $) else id) $
           translate ((tileWidth+1)*(x-1)) ((tileHeight+1)*(y-1)) (ts ! t)
         | ((y, x), t) <- assocs b]
   let wholePicture = foldr (flip addToTop) bp translatedTiles
@@ -176,8 +178,9 @@ moveUp = do
     do let y' = y+1
        playSlide
        (tileHeight, _) <- use tileSize
-       let offsets = [(o, 0) | o <- [(-1),(-2)..(-tileHeight)]]
-           delay = 250000 `div` (tileHeight)
+       let steps = 8 * tileHeight + 7
+           offsets = [(o, 0) | o <- [(-1),(-2)..(-steps)]]
+           delay = 250000 `div` steps
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -190,8 +193,9 @@ moveDown = do
     do let y' = y-1
        playSlide
        (tileHeight, _) <- use tileSize
-       let offsets = [(o, 0) | o <- [1,2..tileHeight]]
-           delay = 250000 `div` (tileHeight)
+       let steps = 8 * tileHeight + 7
+           offsets = [(o, 0) | o <- [1,2..steps]]
+           delay = 250000 `div` steps
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -205,8 +209,9 @@ moveLeft = do
     do let x' = x+1
        playSlide
        (_, tileWidth) <- use tileSize
-       let offsets = [(0, o) | o <- [(-1),(-2)..(-tileWidth)]]
-           delay = 250000 `div` (tileWidth)
+       let steps = 8 * tileWidth + 7
+           offsets = [(0, o) | o <- [(-1),(-2)..(-steps)]]
+           delay = 250000 `div` steps
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
@@ -219,8 +224,9 @@ moveRight = do
     do let x' = x-1
        playSlide
        (_, tileWidth) <- use tileSize
-       let offsets = [(0, o) | o <- [1,2..tileWidth]]
-           delay = 250000 `div` (tileWidth)
+       let steps = 8 * tileWidth + 7
+           offsets = [(0, o) | o <- [1,2..steps]]
+           delay = 250000 `div` steps
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
