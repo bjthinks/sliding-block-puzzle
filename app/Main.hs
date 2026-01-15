@@ -133,30 +133,42 @@ makeMovingTileImage = do
   let tile = b ! movingCoord
   (rows, cols) <- use tileSize
   let spaces = replicate (cols - 2) ' '
-      top    = " " ++ replicate (cols - 2) ' ' ++ " "
-      bottom = " " ++ replicate (cols - 2) ' ' ++ " "
       middle = " " ++ spaces ++ " "
       tileStr = show tile
       len = length tileStr
-      number = " " ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tileStr ++
-        replicate ((cols - 2 - len) `div` 2) ' ' ++ " "
+      number = replicate ((cols - 1 - len) `div` 2 + sx `div` 4) ' ' ++
+        tileStr ++
+        replicate ((cols - len) `div` 2 - sx `div` 4) ' '
   imageRows <-
     if sy /= 0
     then do
-      return $ [string style $ replicate cols (topChar sy)] ++
+      return $
+        [string style $ replicate cols (topChar sy)] ++
         map (string inverseStyle)
-        (replicate ((rows - 2) `div` 2 + sy `div` 4) middle ++ [number] ++
+        (replicate ((rows - 2) `div` 2 + sy `div` 4) middle ++ [' ' : number] ++
         replicate ((rows - 1) `div` 2 - sy `div` 4) middle ++
         [replicate cols (topChar sy)])
     else if sx /= 0
     then do
-      return $ map (string inverseStyle) $
-        [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
-        replicate ((rows - 3) `div` 2) middle ++ [bottom]
+      return $
+        replicate (rows `div` 2)
+        (string inverseStyle
+         ([leftChar sx] ++ replicate (cols - 1) ' ') <|>
+         string style [leftChar sx]) ++
+        [string inverseStyle ([leftChar sx] ++ number) <|>
+         string style [leftChar sx]] ++
+        (replicate ((rows - 1) `div` 2)
+        (string inverseStyle
+         ([leftChar sx] ++ replicate (cols - 1) ' ') <|>
+         string style [leftChar sx]))
     else do
-      return $ map (string inverseStyle) $
-        [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
-        replicate ((rows - 3) `div` 2) middle ++ [bottom]
+      return $
+        map (string inverseStyle) $
+        [replicate cols ' '] ++
+        replicate ((rows - 2) `div` 2) middle ++
+        [' ' : number] ++
+        replicate ((rows - 3) `div` 2) middle ++
+        [replicate cols ' ']
   let image = vertCat imageRows
   oldTileImages <- use tileImages
   tileImages .= oldTileImages // [(tile, image)]
@@ -169,6 +181,14 @@ makeMovingTileImage = do
     topChar 6 = '\x2582'
     topChar 7 = '\x2581'
     topChar _ = undefined
+    leftChar 1 = '\x258f'
+    leftChar 2 = '\x258e'
+    leftChar 3 = '\x258d'
+    leftChar 4 = '\x258c'
+    leftChar 5 = '\x258b'
+    leftChar 6 = '\x258a'
+    leftChar 7 = '\x2589'
+    leftChar _ = undefined
 
 setBasePicture :: Game ()
 setBasePicture = do
@@ -209,7 +229,7 @@ animate usec (y, x) ((dy, dx):ds) = do
   makeMovingTileImage
   displayPuzzle
   if ds /= [] then do
-    liftIO $ threadDelay (40*usec)
+    liftIO $ threadDelay usec
     animate usec (y, x) ds
     else return ()
 
