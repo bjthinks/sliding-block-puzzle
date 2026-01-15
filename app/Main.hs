@@ -123,6 +123,52 @@ makeTileImages = do
   images <- sequence $ map tileImage [0..x*y - 1]
   tileImages .= listArray (0, x*y - 1) images
 
+makeMovingTileImage :: Game ()
+makeMovingTileImage = do
+  maybeMoving <- use movingTile
+  -- (dy, dx) are in eighths of a pixel
+  let (movingCoord, (dy, dx)) = maybe ((0,0), (0,0)) id maybeMoving
+      (sy, sx) = (dy `mod` 8, dx `mod` 8)
+  b <- use board
+  let tile = b ! movingCoord
+  (rows, cols) <- use tileSize
+  let spaces = replicate (cols - 2) ' '
+      top    = " " ++ replicate (cols - 2) ' ' ++ " "
+      bottom = " " ++ replicate (cols - 2) ' ' ++ " "
+      middle = " " ++ spaces ++ " "
+      tileStr = show tile
+      len = length tileStr
+      number = " " ++ replicate ((cols - 1 - len) `div` 2) ' ' ++ tileStr ++
+        replicate ((cols - 2 - len) `div` 2) ' ' ++ " "
+  imageRows <-
+    if sy /= 0
+    then do
+      return $ [string style $ replicate cols (topChar sy)] ++
+        map (string inverseStyle)
+        (replicate ((rows - 2) `div` 2) middle ++ [number] ++
+        replicate ((rows - 3) `div` 2) middle ++ [bottom])
+    else if sx /= 0
+    then do
+      return $ map (string inverseStyle) $
+        [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
+        replicate ((rows - 3) `div` 2) middle ++ [bottom]
+    else do
+      return $ map (string inverseStyle) $
+        [top] ++ replicate ((rows - 2) `div` 2) middle ++ [number] ++
+        replicate ((rows - 3) `div` 2) middle ++ [bottom]
+  let image = vertCat imageRows
+  oldTileImages <- use tileImages
+  tileImages .= oldTileImages // [(tile, image)]
+  where
+    topChar 1 = '\x2587'
+    topChar 2 = '\x2586'
+    topChar 3 = '\x2585'
+    topChar 4 = '\x2584'
+    topChar 5 = '\x2583'
+    topChar 6 = '\x2582'
+    topChar 7 = '\x2581'
+    topChar _ = undefined
+
 setBasePicture :: Game ()
 setBasePicture = do
   (numRows, _) <- use terminalSize
@@ -156,12 +202,15 @@ handleResize newSize = do
   makeTileImages
 
 animate :: Int -> Coord -> [Coord] -> Game ()
-animate _ _ [] = movingTile .= Nothing
+animate _ _ [] = undefined
 animate usec (y, x) ((dy, dx):ds) = do
   movingTile .= Just ((y, x), (dy, dx))
+  makeMovingTileImage
   displayPuzzle
-  liftIO $ threadDelay usec
-  animate usec (y, x) ds
+  if ds /= [] then do
+    liftIO $ threadDelay (40*usec)
+    animate usec (y, x) ds
+    else return ()
 
 moveTo :: Coord -> Coord -> Game ()
 moveTo p1 p2 = do
@@ -178,9 +227,9 @@ moveUp = do
     do let y' = y+1
        playSlide
        (tileHeight, _) <- use tileSize
-       let steps = 8 * tileHeight + 7
+       let steps = 8 * tileHeight + 8
            offsets = [(o, 0) | o <- [(-1),(-2)..(-steps)]]
-           delay = 250000 `div` steps
+           delay = 250000 `div` (steps - 1)
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -193,9 +242,9 @@ moveDown = do
     do let y' = y-1
        playSlide
        (tileHeight, _) <- use tileSize
-       let steps = 8 * tileHeight + 7
+       let steps = 8 * tileHeight + 8
            offsets = [(o, 0) | o <- [1,2..steps]]
-           delay = 250000 `div` steps
+           delay = 250000 `div` (steps - 1)
        animate delay (y', x) offsets
        moveTo (y', x) (y, x)
        blank .= (y', x)
@@ -209,9 +258,9 @@ moveLeft = do
     do let x' = x+1
        playSlide
        (_, tileWidth) <- use tileSize
-       let steps = 8 * tileWidth + 7
+       let steps = 8 * tileWidth + 8
            offsets = [(0, o) | o <- [(-1),(-2)..(-steps)]]
-           delay = 250000 `div` steps
+           delay = 250000 `div` (steps - 1)
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
@@ -224,9 +273,9 @@ moveRight = do
     do let x' = x-1
        playSlide
        (_, tileWidth) <- use tileSize
-       let steps = 8 * tileWidth + 7
+       let steps = 8 * tileWidth + 8
            offsets = [(0, o) | o <- [1,2..steps]]
-           delay = 250000 `div` steps
+           delay = 250000 `div` (steps - 1)
        animate delay (y, x') offsets
        moveTo (y, x') (y, x)
        blank .= (y, x')
