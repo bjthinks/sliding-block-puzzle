@@ -145,8 +145,9 @@ makeMovingTileImage = do
     then do
       return $ [string style $ replicate cols (topChar sy)] ++
         map (string inverseStyle)
-        (replicate ((rows - 2) `div` 2) middle ++ [number] ++
-        replicate ((rows - 3) `div` 2) middle ++ [bottom])
+        (replicate ((rows - 2) `div` 2 + sy `div` 4) middle ++ [number] ++
+        replicate ((rows - 1) `div` 2 - sy `div` 4) middle ++
+        [replicate cols (topChar sy)])
     else if sx /= 0
     then do
       return $ map (string inverseStyle) $
