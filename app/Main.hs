@@ -132,9 +132,7 @@ makeMovingTileImage = do
   b <- use board
   let tile = b ! movingCoord
   (rows, cols) <- use tileSize
-  let spaces = replicate (cols - 2) ' '
-      middle = " " ++ spaces ++ " "
-      tileStr = show tile
+  let tileStr = show tile
       len = length tileStr
       number = replicate ((cols - 1 - len) `div` 2 + sx `div` 4) ' ' ++
         tileStr ++
@@ -145,9 +143,10 @@ makeMovingTileImage = do
       return $
         [string style $ replicate cols (topChar sy)] ++
         map (string inverseStyle)
-        (replicate ((rows - 2) `div` 2 + sy `div` 4) middle ++ [' ' : number] ++
-        replicate ((rows - 1) `div` 2 - sy `div` 4) middle ++
-        [replicate cols (topChar sy)])
+        (replicate ((rows - 2) `div` 2 + sy `div` 4) (replicate cols ' ') ++
+         [' ' : number] ++
+         replicate ((rows - 1) `div` 2 - sy `div` 4) (replicate cols ' ') ++
+         [replicate cols (topChar sy)])
     else if sx /= 0
     then do
       return $
@@ -164,11 +163,9 @@ makeMovingTileImage = do
     else do
       return $
         map (string inverseStyle) $
-        [replicate cols ' '] ++
-        replicate ((rows - 2) `div` 2) middle ++
+        replicate (rows `div` 2) (replicate cols ' ') ++
         [' ' : number] ++
-        replicate ((rows - 3) `div` 2) middle ++
-        [replicate cols ' ']
+        replicate ((rows - 1) `div` 2) (replicate cols ' ')
   let image = vertCat imageRows
   oldTileImages <- use tileImages
   tileImages .= oldTileImages // [(tile, image)]
